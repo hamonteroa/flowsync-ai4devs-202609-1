@@ -22,6 +22,7 @@ test.group('Auth | signup', (group) => {
 
     response.assertStatus(200)
     assert.equal(response.body().data.user.email, EMAIL)
+    assert.notProperty(response.body().data, 'token')
 
     const user = await User.findByOrFail('email', EMAIL)
     assert.equal(user.email, EMAIL)

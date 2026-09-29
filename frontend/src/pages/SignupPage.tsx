@@ -45,8 +45,18 @@ export function SignupPage() {
       )
       navigate('/login', { state: { email: user.email, created: true } })
     } catch (error) {
-      if (error instanceof ApiError && error.status === 422) {
-        setErrors(errorsByField(error.errors))
+      const fieldErrors =
+        error instanceof ApiError && error.status === 422
+          ? errorsByField(error.errors)
+          : {}
+      // Only these fields are rendered; anything else falls back to the banner.
+      const shown: Errors = {
+        email: fieldErrors.email,
+        password: fieldErrors.password,
+        passwordConfirmation: fieldErrors.passwordConfirmation,
+      }
+      if (Object.values(shown).some(Boolean)) {
+        setErrors(shown)
       } else {
         setFormError('No se pudo crear la cuenta. Inténtalo de nuevo.')
       }

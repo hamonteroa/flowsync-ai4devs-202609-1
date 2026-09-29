@@ -7,6 +7,7 @@ import vine, { SimpleMessagesProvider } from '@vinejs/vine'
 const PASSWORD_POLICY = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/
 const PASSWORD_POLICY_MESSAGE =
   'La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número.'
+export const DUPLICATE_EMAIL_MESSAGE = 'Ya existe una cuenta con este email.'
 
 /**
  * Shared rules for email and password. Emails are normalized to
@@ -30,7 +31,7 @@ signupValidator.messagesProvider = new SimpleMessagesProvider({
   'required': 'Este campo es obligatorio.',
   'email.email': 'Introduce un email válido.',
   'email.maxLength': 'El email no puede superar los 254 caracteres.',
-  'email.database.unique': 'Ya existe una cuenta con este email.',
+  'email.database.unique': DUPLICATE_EMAIL_MESSAGE,
   'password.minLength': PASSWORD_POLICY_MESSAGE,
   'password.maxLength': 'La contraseña no puede superar los 32 caracteres.',
   'password.regex': PASSWORD_POLICY_MESSAGE,

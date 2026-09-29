@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { PasswordField, TextField } from '../components/fields'
 import { ApiError, api } from '../lib/api'
@@ -25,6 +25,11 @@ export function LoginPage() {
       : undefined,
   )
   const [submitting, setSubmitting] = useState(false)
+
+  // The signup hand-off is read once; drop it so a reload does not show it again.
+  useEffect(() => {
+    if (state) navigate('.', { replace: true, state: null })
+  }, [state, navigate])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
