@@ -15,7 +15,11 @@ const dbConfig = defineConfig({
       client: 'better-sqlite3',
 
       connection: {
-        filename: app.tmpPath('db.sqlite3'),
+        /**
+         * Tests use their own file: the test runner migrates and rolls
+         * back the schema, which would wipe the development database.
+         */
+        filename: app.tmpPath(app.inTest ? 'db.test.sqlite3' : 'db.sqlite3'),
       },
 
       /**
