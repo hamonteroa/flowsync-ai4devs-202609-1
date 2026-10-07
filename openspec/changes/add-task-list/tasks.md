@@ -22,34 +22,34 @@
 
 ## 3. Cliente de API (frontend)
 
-- [ ] 3.1 Añadir a `lib/types.ts` `TaskStatus`, `Task` y las etiquetas Pendiente / En curso / Hecho, y verificar con `npm run build`
-- [ ] 3.2 Añadir a `lib/api.ts` `listTasks`, `createTask` y `updateTaskStatus` (con `PATCH` en `RequestOptions`) y las traducciones nuevas (`title`, `enum`, `database.exists`, 404), y verificar con `npm run build` y `npm run lint`
+- [x] 3.1 Añadir a `lib/types.ts` `TaskStatus`, `Task` y las etiquetas Pendiente / En curso / Hecho, y verificar con `npm run build`
+- [x] 3.2 Añadir a `lib/api.ts` `listTasks`, `createTask` y `updateTaskStatus` (con `PATCH` en `RequestOptions`) y las traducciones nuevas (`title`, `enum`, `database.exists`, 404), y verificar con `npm run build` y `npm run lint`
 
 ## 4. Pantalla de lista (frontend)
 
-- [ ] 4.1 Crear `pages/tasks-page.tsx` con carga, aviso de error (verificar con el backend parado que sale el aviso y no una lista vacía) y estado vacío explicativo, y filas con título, responsable (`Sin nombre` si falta o está en blanco) y estado; sin fechas, sin orden en cliente. Verificar en el navegador que con la tabla vacía aparece el texto de estado vacío y que con tareas de dos usuarios (uno sin nombre) cada fila muestra título, nombre o "Sin nombre" y estado en castellano
-- [ ] 4.2 Añadir el formulario de creación con solo el campo título (sin `maxLength` en el input), con validación local de vacío/en blanco y de más de 120 caracteres, errores de servidor bajo el campo y la tarea creada añadida al final de la lista. Verificar en el navegador que:
+- [x] 4.1 Crear `pages/tasks-page.tsx` con carga, aviso de error (verificar con el backend parado que sale el aviso y no una lista vacía) y estado vacío explicativo, y filas con título, responsable (`Sin nombre` si falta o está en blanco) y estado; sin fechas, sin orden en cliente. Verificar en el navegador que con la tabla vacía aparece el texto de estado vacío y que con tareas de dos usuarios (uno sin nombre) cada fila muestra título, nombre o "Sin nombre" y estado en castellano
+- [x] 4.2 Añadir el formulario de creación con solo el campo título (sin `maxLength` en el input), con validación local de vacío/en blanco y de más de 120 caracteres, errores de servidor bajo el campo y la tarea creada añadida al final de la lista. Verificar en el navegador que:
   - La creación aparece sin recargar, a nombre propio y en "Pendiente".
   - Con el título vacío o en blanco sale "Escribe un título para la tarea." y no hay petición en la pestaña de red.
   - Con 121 caracteres sale "El título no puede superar los 120 caracteres." y el texto se conserva entero.
   - Con 115 caracteres más 10 espacios finales la tarea se crea, sin los espacios.
   - Con el backend parado al crear sale el aviso, el título se conserva y la lista no cambia.
   - Con un token revocado (logout desde otra pestaña) sale "Tu sesión ha caducado. Vuelve a iniciar sesión." y al recargar se llega al login.
-- [ ] 4.3 Añadir en cada fila los tres botones de estado (actual marcado con `aria-pressed`), con cambio optimista y vuelta atrás con aviso si la API falla, y verificar en el navegador que:
+- [x] 4.3 Añadir en cada fila los tres botones de estado (actual marcado con `aria-pressed`), con cambio optimista y vuelta atrás con aviso si la API falla, y verificar en el navegador que:
   - Cambiar el estado de una tarea propia y de una ajena se refleja al instante, y los botones de esa fila quedan deshabilitados hasta la respuesta.
   - Tras recargar el estado persiste.
   - Con el backend parado el estado vuelve al anterior y aparece el aviso.
 
 ## 5. Navegación (frontend)
 
-- [ ] 5.1 Registrar `/tasks` dentro de `ProtectedRoute`, redirigir `PublicOnlyRoute` y la ruta comodín a `/tasks`, añadir el enlace "Perfil" en la lista y "Ver tareas" en el perfil. Verificar en el navegador que:
+- [x] 5.1 Registrar `/tasks` dentro de `ProtectedRoute`, redirigir `PublicOnlyRoute` y la ruta comodín a `/tasks`, añadir el enlace "Perfil" en la lista y "Ver tareas" en el perfil. Verificar en el navegador que:
   - Login y registro llevan a la lista.
   - `/login` con sesión lleva a la lista.
   - Una ruta inventada lleva a la lista, o al login si no hay sesión.
   - `/tasks` sin sesión lleva al login.
   - Recargar estando en `/tasks` muestra el indicador de carga y vuelve a la lista.
   - Los enlaces lista ↔ perfil funcionan.
-- [ ] 5.2 Verificar `npm run build`, `npm run lint` y `npm run format` limpios en `frontend/`
+- [x] 5.2 Verificar `npm run build`, `npm run lint` y `npm run format` limpios en `frontend/`
 
 ## 6. Integración
 
