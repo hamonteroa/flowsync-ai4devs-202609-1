@@ -47,9 +47,9 @@ La API SHALL devolver, a cualquier persona autenticada, todas las tareas existen
 - **WHEN** se pide la lista cualquier número de veces
 - **THEN** ninguna tarea cambia de título, estado ni responsable
 
-#### Scenario: Orden no garantizado
-- **WHEN** se pide la lista
-- **THEN** las tareas llegan sin ningún criterio de orden garantizado, porque no hay regla de orden decidida
+#### Scenario: Sin contenido reservado
+- **WHEN** cualquier persona registrada pide la lista
+- **THEN** recibe todas las tareas completas, igual que cualquier otra, sin campos ni tareas reservados a ningún rol
 
 ### Requirement: Crear una tarea con solo el título
 La API SHALL crear una tarea a partir únicamente de un título, asignándole siempre el estado `pending` y como responsable a la persona autenticada que la crea, e ignorando cualquier otro dato que venga en la petición.
@@ -185,12 +185,20 @@ La aplicación web SHALL permitir crear una tarea desde la propia lista escribie
 - **THEN** ve "Escribe un título para la tarea." bajo el campo, no se envía nada al servidor y la lista no cambia
 
 #### Scenario: Título demasiado largo en pantalla
-- **WHEN** la persona pulsa "Crear tarea" con un título de más de 120 caracteres
+- **WHEN** la persona pulsa "Crear tarea" con un título de más de 120 caracteres sin contar los espacios de los extremos
 - **THEN** ve "El título no puede superar los 120 caracteres." bajo el campo, el texto escrito se conserva sin recortar y no se crea ninguna tarea
+
+#### Scenario: Título largo solo por los espacios
+- **WHEN** la persona escribe un título de 115 caracteres seguido de 10 espacios y pulsa "Crear tarea"
+- **THEN** la tarea se crea con el título sin los espacios finales
 
 #### Scenario: Error al crear
 - **WHEN** el servidor no responde o falla al crear la tarea
 - **THEN** la persona ve un aviso con el motivo, el título escrito se conserva y la lista no cambia
+
+#### Scenario: Sesión caducada mientras se usa la lista
+- **WHEN** el servidor responde 401 al crear una tarea o al cambiar un estado
+- **THEN** la persona ve "Tu sesión ha caducado. Vuelve a iniciar sesión.", la lista no cambia, y al recargar la página llega a la pantalla de inicio de sesión
 
 ### Requirement: Cambiar el estado desde la fila
 La aplicación web SHALL permitir cambiar el estado de cualquier tarea desde su propia fila con un único gesto, ofreciendo como destinos solo Pendiente, En curso y Hecho, sin abrir la tarea, sin diálogos de confirmación y sin advertencias aunque la tarea sea de otra persona.
@@ -206,6 +214,14 @@ La aplicación web SHALL permitir cambiar el estado de cualquier tarea desde su 
 #### Scenario: Solo tres destinos
 - **WHEN** la persona mira cómo cambiar el estado de una fila
 - **THEN** las únicas opciones son "Pendiente", "En curso" y "Hecho", con la actual marcada como seleccionada
+
+#### Scenario: Estados fijos
+- **WHEN** la persona busca en cualquier pantalla una forma de añadir, renombrar o eliminar un estado
+- **THEN** no existe ninguna
+
+#### Scenario: Cambio en curso
+- **WHEN** se ha pulsado un estado en una fila y el servidor aún no ha respondido
+- **THEN** los botones de estado de esa fila quedan deshabilitados hasta la respuesta, y los de las demás filas siguen disponibles
 
 #### Scenario: El servidor rechaza el cambio
 - **WHEN** el servidor no responde o rechaza el cambio de estado

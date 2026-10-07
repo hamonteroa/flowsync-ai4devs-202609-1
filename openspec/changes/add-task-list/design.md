@@ -32,7 +32,7 @@ El frontend concentra las llamadas en `lib/api.ts`, que traduce los errores a `A
   - `title` `string(120)` not null.
   - `status` `string` not null, default `'pending'`.
   - `assignee_id` integer not null, FK a `users.id` con `onDelete('CASCADE')`, igual que los tokens. Hoy no se borran usuarios.
-  - `created_at` / `updated_at`.
+  - `created_at` / `updated_at`: metadatos de auditoría estándar de Lucid, no vencimiento. No se exponen ni se pintan.
 - No hay `creator_id`: ninguna historia lo usa y el responsable inicial ya es el creador.
 - No hay enum ni CHECK en la base de datos. El conjunto cerrado se garantiza en el validador, que es la única vía de escritura. *Alternativa descartada:* un `CHECK` en SQLite obliga a recrear la tabla para cualquier cambio futuro de estados y no aporta nada observable.
 - Modelo `Task extends TaskSchema` con `@belongsTo(() => User, { foreignKey: 'assigneeId' }) declare assignee`. Se exporta un `TASK_STATUSES = ['pending', 'in_progress', 'done'] as const` (en el modelo o en el validador) para no repetir la lista.
@@ -72,6 +72,8 @@ El frontend concentra las llamadas en `lib/api.ts`, que traduce los errores a `A
     - Regla `enum` → «Ese estado no existe.».
     - `database.exists` → «Esa persona no existe.».
     - 404 → «Esa tarea ya no existe.».
+    - Para `title`: `required`/`minLength` → «Escribe un título para la tarea.» y `maxLength` → «El título no puede superar los 120 caracteres.», los mismos textos que la validación local, para no mostrar «al menos 1 caracteres».
+    - Se actualiza el comentario de `translate()`, que hoy dice cubrir solo las reglas de usuario.
   - El mapeo genérico de 400 a «credenciales incorrectas» no afecta: ninguna ruta de tareas devuelve 400.
 - `pages/tasks-page.tsx`:
   - Va dentro de un `Card` con el mismo marco que el perfil (fondo `bg-muted/40`, centrado, más ancho).
@@ -79,16 +81,16 @@ El frontend concentra las llamadas en `lib/api.ts`, que traduce los errores a `A
   - Formulario: un `Input` + `Button` «Crear tarea» / «Creando…».
   - Validación local antes de enviar:
     - Título vacío o en blanco → «Escribe un título para la tarea.».
-    - Más de 120 caracteres → «El título no puede superar los 120 caracteres.».
+    - Más de 120 caracteres medidos sobre `title.trim()`, igual que el servidor → «El título no puede superar los 120 caracteres.». Se envía el título recortado.
     - Sin atributo `maxLength` en el input: el navegador cortaría en silencio lo pegado, justo lo que E2-2 CA-3 prohíbe.
-  - Los errores de servidor se reparten con `useAuthForm(['title'])`, que sirve tal cual aunque el nombre diga «auth».
+  - Los errores de servidor se reparten con `useAuthForm(FIELDS)`, con `FIELDS = ['title'] as const` como constante de módulo (igual que en el login, para que `submit` no se recree en cada render). Sirve tal cual aunque el nombre diga «auth».
   - La tarea creada se **añade al final** del array local, sin reordenar.
 - Filas:
   - Una `ul` con título, responsable (`fullName?.trim() || 'Sin nombre'`) y tres `Button size="sm"` (Pendiente / En curso / Hecho).
   - El actual va con `variant="default"` y `aria-pressed`, los otros con `variant="outline"`.
   - Un clic es el gesto completo.
   - *Alternativa descartada:* `<select>` nativo, que cuesta dos interacciones y no existe como componente en `ui/`.
-  - El cambio es optimista: se actualiza el estado local, se llama a la API y, si falla, se restaura el estado previo de esa fila y se muestra un `Alert` sobre la lista.
+  - El cambio es optimista: se actualiza el estado local, se deshabilitan los botones de esa fila mientras dura la petición (evita la carrera A→B→C con restauraciones cruzadas), se llama a la API y, si falla, se restaura el estado previo de esa fila y se muestra un `Alert` sobre la lista. Si responde bien, se toma la tarea devuelta por el servidor.
 - Carga: `FullScreenLoader`-like local (texto «Cargando tareas…») mientras llega la primera respuesta. Si falla, `Alert` con el mensaje de `ApiError`.
 - Estado vacío: un párrafo en lugar de la `ul`, con el texto «Aquí aparecerán las tareas de todo el equipo, con quién lleva cada una y en qué estado está. Escribe arriba el título de la primera.».
 - Rutas:
@@ -100,6 +102,8 @@ El frontend concentra las llamadas en `lib/api.ts`, que traduce los errores a `A
 ## Risks / Trade-offs
 
 - [Orden no determinista en SQLite sin `ORDER BY`] → En la práctica sale por `id`, pero no está garantizado. Queda documentado como punto abierto PA-3 y no se oculta con un orden implícito en el cliente.
+- [Un 401 a mitad de uso deja a la persona en la lista con acciones que fallan] → Se muestra «Tu sesión ha caducado…» y la rehidratación la echa al recargar. Forzar el logout global queda fuera de este change; está declarado como escenario en la spec.
+- [Longitud en unidades UTF-16] → `maxLength` de VineJS y `.length` de JS cuentan igual, así que cliente y servidor coinciden, pero 60 emojis ya suman 120.
 - [Actualización optimista con dos personas cambiando la misma tarea] → Gana la última escritura y la otra persona no lo ve hasta recargar (E3-2 fuera de alcance).
 - [`assigneeId` aceptado por la API sin UI] → Superficie que solo se puede probar con HTTP directo. Está cubierta por la spec y se verifica con `curl` en tasks.md.
 - [Sin tests] → La verificación de cada tarea es manual (curl, navegador, `typecheck`, `lint`, `build`). Las regresiones futuras no tienen red.
