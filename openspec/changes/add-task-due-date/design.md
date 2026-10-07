@@ -45,15 +45,19 @@ Ver proposal.md (Why) y los deltas de `specs/tasks` y `specs/auth`. Punto de par
 - No hay columna `is_overdue` (restricción 3).
 
 ### Regla en el dominio
-- `Task#isOverdueOn(today: string): boolean` en `app/models/task.ts` devuelve `dueDate !== null && status !== 'done' && dueDate.toISODate()! < today`.
+- `Task#isOverdueOn(today: string): boolean` en `app/models/task.ts` devuelve `false` si `!this.dueDate`, y si no, `status !== 'done' && dueDate.toISODate()! < today`.
+  - Usa `!this.dueDate` y no `!== null`: tras `Task.create()` sin fecha la propiedad queda `undefined` (Lucid no refresca columnas no asignadas), y una comparación estricta con `null` lanzaría un `TypeError` en el camino por defecto (CA-1).
   - Compara cadenas ISO `YYYY-MM-DD`, que ordenan igual que las fechas y evitan cualquier aritmética de horas.
   - Es el único sitio donde vive la regla.
 - *Alternativa descartada:* calcularlo en SQL o en el transformer. Duplicaría la regla o la escondería en la capa de presentación.
 
 ### Día de referencia
 - `referenceDay(request)` en `app/services/reference_day.ts`, importado como `#services/reference_day` (el subpath ya está declarado en `package.json`):
-  - Lee la cabecera `x-timezone`.
-  - Hace `DateTime.now().setZone(tz)` y, si el resultado no `isValid` (huso desconocido o cabecera ausente), usa `DateTime.utc()`.
+  - Lee la cabecera `x-timezone` y la descarta (→ UTC) si falta, supera 64 caracteres o no tiene forma de nombre de zona (`/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){1,2}$/`). Así quedan fuera `+05:00`, `UTC+3`, `local` y `system`, que luxon aceptaría con un día distinto del de UTC o con el huso del proceso.
+  - Valida el nombre con `new Intl.DateTimeFormat('en', { timeZone })` dentro de `try/catch` y toma su `resolvedOptions().timeZone`, que es el nombre canónico.
+  - Solo ese nombre canónico llega a `DateTime.now().setZone(...)`. Si en algún paso falla, se usa `DateTime.utc()`.
+  - Así la caché de zonas de luxon, que guarda cada nombre que recibe sin límite, solo ve husos reales canónicos y no crece con cabeceras inventadas.
+  - *Alternativa descartada:* una lista blanca con `Intl.supportedValuesOf('timeZone')`. Depende de la versión de ICU y deja fuera nombres legítimos que los navegadores sí envían (en el Node actual no incluye `Etc/GMT+12` ni `Asia/Kolkata`).
   - Devuelve `toISODate()`.
 - Se calcula una vez por petición en cada acción del controlador y se pasa al transformer.
 - *Alternativa descartada:* que el cliente envíe su fecha (`X-Client-Date`). Es más fácil de falsear sin querer con un reloj mal puesto y no aporta nada a CA-19/CA-20.
@@ -85,16 +89,20 @@ Ver proposal.md (Why) y los deltas de `specs/tasks` y `specs/auth`. Punto de par
 - `lib/api.ts`:
   - `request()` añade a todas las peticiones `X-Timezone: Intl.DateTimeFormat().resolvedOptions().timeZone`. Es inocuo en las de auth y evita olvidarlo en llamadas futuras.
   - Funciones nuevas `getTask(token, id)` y `updateTaskDueDate(token, id, dueDate: string | null)`.
-  - `FIELD_LABELS.dueDate = 'la fecha'`. Cualquier error sobre `dueDate` se traduce a «Introduce una fecha completa y válida.».
-- `pages/task-page.tsx` en `/tasks/:id`, dentro de `ProtectedRoute`, con el mismo marco que la lista:
+  - `FIELD_LABELS.dueDate = 'la fecha'`. En `translate()` se trata por **campo**, no por regla, igual que `title`: cualquier error con `field === 'dueDate'` se traduce a «Introduce una fecha completa y válida, o pulsa «Quitar fecha».». Si no, la regla `date` caería en el genérico «Revisa la fecha.».
+- `pages/task-page.tsx` en `/tasks/:id`, dentro de `ProtectedRoute`, con el mismo marco que la lista. Se monta con `key` igual al id de la ruta, para que navegar de una tarea a otra reinicie su estado:
   - Enlace «Volver a la lista» y título (`wrap-anywhere`).
   - `Label` «Fecha de vencimiento» + `Input type="date"` + `Button variant="outline"` «Quitar fecha» (deshabilitado si no hay fecha).
   - Si `task.isOverdue`, se muestra un `<p role="status">` con `AlertCircleIcon` + texto «Vencida» en `text-destructive`. Es texto, icono y color.
   - Nunca se calcula el vencimiento en el cliente: tras cada guardado se pinta la tarea que devuelve el servidor.
 - Interacción con el campo de fecha. El campo es controlado (`draft`). El valor guardado es `task.dueDate`.
   - Si `onChange` da una fecha completa, se guarda.
-  - Si `onChange` da `''` sin `validity.badInput` (la persona vació el campo), se guarda `null`, igual que «Quitar fecha».
-  - En `onBlur`, si `validity.badInput` (fecha incompleta o inexistente), se muestra «Introduce una fecha completa y válida.» bajo el campo, no se envía nada y se vuelve a montar el input (`key`) con la fecha guardada.
+  - Un `onChange` con `''` **no** guarda nada. Quitar la fecha solo se hace con el botón «Quitar fecha».
+    - Motivo: en algunos navegadores una fecha a medias da `value === ''` con `validity.badInput` falso. Si vaciar el campo guardara `null`, se podría borrar sin querer una fecha válida, contra CA-14.
+  - En `onBlur`, si el valor no es una fecha completa (`''` o `validity.badInput`) y difiere de la guardada:
+    - Se muestra «Introduce una fecha completa y válida, o pulsa «Quitar fecha».» bajo el campo.
+    - No se envía nada.
+    - Se vuelve a montar el input (`key`) con la fecha guardada.
   - Mientras hay guardado en vuelo, el input y el botón quedan `disabled`.
   - Si el guardado falla:
     - Se restaura `draft` a `task.dueDate`.

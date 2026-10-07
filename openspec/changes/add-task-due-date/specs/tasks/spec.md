@@ -229,7 +229,7 @@ La API SHALL tomar como día de referencia la fecha actual en el huso horario IA
 - **THEN** la respuesta es la normal y el día de referencia es el día actual en UTC
 
 #### Scenario: Huso no válido
-- **WHEN** se pide una tarea con `X-Timezone: Marte/Olympus`
+- **WHEN** se pide una tarea con `X-Timezone` `Marte/Olympus`, `+05:00`, `UTC+3`, `local` o un valor de más de 64 caracteres
 - **THEN** la respuesta es la normal, sin error, y el día de referencia es el día actual en UTC
 
 ### Requirement: Vista de una tarea
@@ -279,12 +279,12 @@ La aplicación web SHALL guardar la fecha de vencimiento en cuanto la persona el
 - **THEN** se guarda sin impedimento y la vista pasa a mostrar "Vencida"
 
 #### Scenario: Quitar la fecha en la web
-- **WHEN** la persona pulsa "Quitar fecha" o vacía el campo
+- **WHEN** la persona pulsa "Quitar fecha"
 - **THEN** la tarea queda sin fecha al instante, sin diálogo de confirmación, y deja de mostrar "Vencida" si la mostraba
 
 #### Scenario: Fecha incompleta en pantalla
-- **WHEN** la persona deja el campo con una fecha incompleta o inexistente
-- **THEN** ve "Introduce una fecha completa y válida." bajo el campo, no se envía nada al servidor y la tarea conserva la fecha que tenía
+- **WHEN** la persona sale del campo dejándolo con una fecha incompleta, inexistente o vacío
+- **THEN** ve "Introduce una fecha completa y válida, o pulsa «Quitar fecha»." bajo el campo, no se envía nada al servidor y el campo vuelve a mostrar la fecha que la tarea tenía
 
 #### Scenario: El servidor rechaza la fecha
 - **WHEN** el servidor responde 422 sobre `dueDate`
@@ -297,6 +297,10 @@ La aplicación web SHALL guardar la fecha de vencimiento en cuanto la persona el
 #### Scenario: Guardado en curso
 - **WHEN** se ha elegido o quitado una fecha y el servidor aún no ha respondido
 - **THEN** el campo y el botón "Quitar fecha" quedan deshabilitados hasta la respuesta
+
+#### Scenario: Sesión caducada en la vista de la tarea
+- **WHEN** el servidor responde 401 al cargar la tarea o al guardar su fecha
+- **THEN** la persona ve "Tu sesión ha caducado. Vuelve a iniciar sesión.", la fecha guardada no cambia, y al recargar la página llega a la pantalla de inicio de sesión
 
 #### Scenario: Fecha de una tarea ajena en la web
 - **WHEN** la persona cambia la fecha de una tarea cuyo responsable es otra

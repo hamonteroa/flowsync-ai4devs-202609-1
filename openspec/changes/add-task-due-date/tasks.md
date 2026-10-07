@@ -3,7 +3,7 @@
 ## 1. Datos y dominio
 
 - [ ] 1.1 Crear la migración que añade `due_date` (`date`, anulable) a `tasks`, con un `down` que la elimina, y verificar que `node ace migration:run` termina limpio sobre la base con tareas existentes, que esas tareas quedan con `due_date` nulo y que `database/schema.ts` regenerado declara `dueDate` en `TaskSchema` (anotar el tipo generado)
-- [ ] 1.2 Añadir `isOverdueOn(today)` al modelo `Task` (fecha presente, anterior a `today` en ISO, estado distinto de `done`) y crear `app/services/reference_day.ts` (`x-timezone` IANA válido o UTC), y verificar con `npm run typecheck`
+- [ ] 1.2 Añadir `isOverdueOn(today)` al modelo `Task` (falso si `!dueDate`, incluido `undefined`; si no, fecha anterior a `today` en ISO y estado distinto de `done`) y crear `app/services/reference_day.ts` (forma y longitud de `x-timezone`, validación y nombre canónico con `Intl.DateTimeFormat`, UTC si falla), y verificar con `npm run typecheck`
 
 ## 2. API
 
@@ -28,14 +28,14 @@
     - `done` con la fecha pasada no está vencida y conserva la fecha.
     - Volver de `done` a `pending` con la fecha pasada la deja vencida.
     - Aplazar a una fecha futura deja de vencerla.
-  - **Husos.** Con `dueDate` = hoy en `Etc/GMT+12`, la misma tarea leída con `X-Timezone: Pacific/Kiritimati` da `isOverdue: true` y con `Etc/GMT+12` da `false`. Esto cubre las dos lecturas simultáneas y el paso de día sin modificar la tarea.
-  - **Cabecera.** Sin `X-Timezone` y con `X-Timezone: Marte/Olympus` la respuesta es 200 normal, con día UTC.
+  - **Husos.** Se usa `Etc/GMT+12` en vez del par de la spec (`America/Los_Angeles`) porque su día es el mínimo del planeta: con Kiritimati siempre hay al menos un día de diferencia, sin depender de la hora a la que se verifique. Con `dueDate` = hoy en `Etc/GMT+12`, la misma tarea leída con `X-Timezone: Pacific/Kiritimati` da `isOverdue: true` y con `Etc/GMT+12` da `false`. Esto cubre las dos lecturas simultáneas y el paso de día sin modificar la tarea.
+  - **Cabecera.** Sin `X-Timezone`, y con `Marte/Olympus`, `+05:00`, `UTC+3`, `local` o 100 caracteres, la respuesta es 200 normal y el día es el de UTC (comprobado con una tarea de fecha = hoy en UTC, que no sale vencida).
   - **Persistencia.** No existe ninguna columna `is_overdue` en `tasks`.
 - [ ] 2.5 Verificar `npm run lint` y `npm run typecheck` limpios en `backend/`
 
 ## 3. Cliente de API (frontend)
 
-- [ ] 3.1 Añadir `dueDate` e `isOverdue` al tipo `Task`, la cabecera `X-Timezone` del navegador en `request()`, `getTask` y `updateTaskDueDate`, y la traducción de errores de `dueDate` («Introduce una fecha completa y válida.»), y verificar con `npm run build` y `npm run lint`
+- [ ] 3.1 Añadir `dueDate` e `isOverdue` al tipo `Task`, la cabecera `X-Timezone` del navegador en `request()`, `getTask` y `updateTaskDueDate`, y la traducción por campo de los errores de `dueDate` («Introduce una fecha completa y válida, o pulsa «Quitar fecha».»), y verificar con `npm run build` y `npm run lint`
 
 ## 4. Vista de la tarea (frontend)
 
@@ -45,10 +45,11 @@
   - Un id inexistente muestra «Esa tarea ya no existe.».
   - Con el backend parado aparece el aviso.
   - Sin sesión redirige al login.
-- [ ] 4.2 Implementar el guardado automático de la fecha (al elegir una fecha completa, al vaciar el campo o con «Quitar fecha»; controles deshabilitados en vuelo; vuelta a la fecha anterior con mensaje bajo el campo o aviso si falla; validación de fecha incompleta en `onBlur` sin enviar nada). Verificar en el navegador que:
+- [ ] 4.2 Implementar el guardado automático de la fecha (al elegir una fecha completa o con «Quitar fecha»; vaciar el campo no guarda nada; controles deshabilitados en vuelo; vuelta a la fecha anterior con mensaje bajo el campo o aviso si falla; validación en `onBlur` de fecha incompleta o campo vacío sin enviar nada). Verificar en el navegador que:
   - Poner una fecha futura, una de hoy y una pasada refleja al instante la fecha y el veredicto del servidor sin recargar, y persiste tras recargar.
-  - Quitar la fecha no pide confirmación y quita «Vencida».
-  - Una fecha incompleta muestra el mensaje y no genera petición en la pestaña de red.
+  - Quitar la fecha con el botón no pide confirmación y quita «Vencida».
+  - Una fecha incompleta o el campo vaciado muestran el mensaje al salir del campo, no generan ninguna petición en la pestaña de red y el campo vuelve a la fecha guardada.
+  - Un 401 (token revocado desde otra pestaña) muestra «Tu sesión ha caducado…» y no cambia la fecha.
   - Con el backend parado se restaura la fecha anterior con aviso.
   - Todo es operable solo con teclado.
   - En las peticiones viaja la cabecera `X-Timezone`.

@@ -18,10 +18,10 @@ Hoy una tarea no puede comprometerse con una fecha, y nadie descubre que algo se
   - Lo decide el backend en cada lectura. No se guarda en ninguna columna, no hay procesos programados y, si el cliente lo envía, se ignora.
 - **Día de referencia por huso**:
   - El cliente indica su zona con la cabecera `X-Timezone` (nombre IANA, p. ej. `Europe/Madrid`) y el servidor calcula «hoy» en esa zona.
-  - Si la cabecera falta o no es válida, se usa UTC sin error.
+  - Si la cabecera falta o no es un nombre de huso de zona (p. ej. `+05:00`, `UTC+3`, `local`), se usa UTC sin error.
   - La web la envía en todas sus peticiones.
 - **API**:
-  - **BREAKING (aditivo)**: la representación de una tarea gana `dueDate` (`YYYY-MM-DD` o `null`) e `isOverdue`.
+  - Cambio aditivo, sin romper a los clientes actuales: la representación de una tarea gana `dueDate` (`YYYY-MM-DD` o `null`) e `isOverdue`.
   - `POST /api/v1/tasks` acepta un `dueDate` opcional.
   - `PATCH /api/v1/tasks/:id` acepta `dueDate`.
   - Nueva lectura individual `GET /api/v1/tasks/:id`.
@@ -52,7 +52,8 @@ Hoy una tarea no puede comprometerse con una fecha, y nadie descubre que algo se
 
 ## Puntos abiertos
 
-- **Lectura individual (PA-6).** Se añade solo porque «abrir la tarea» la necesita. Qué más mostrará el detalle completo, y si esta vista mínima evoluciona hacia él o se sustituye, queda por decidir.
+- **Lectura individual (PA-6).** Se añade solo porque «abrir la tarea» la necesita. Qué más mostrará el detalle completo, y si esta vista mínima evoluciona hacia él o se sustituye, queda por decidir. Por ejemplo, la vista mínima no muestra el estado: una tarea hecha con la fecha pasada aparece sin «Vencida» y sin explicar por qué.
+- **Nombres de requisitos.** «Crear una tarea con solo el título» y «Actualizar estado y responsable de cualquier tarea» ya admiten la fecha, pero conservan el nombre para que el delta MODIFIED se aplique sobre la spec viva. Renombrarlos queda para un change de limpieza.
 - **Volver de «Hecho» con la fecha pasada (PA-7).** Las transiciones ya son libres, así que la regla hace que esa tarea vuelva a estar vencida. Es consecuencia directa de la regla, no una decisión nueva. Se deja anotado por si PA-7 restringe las transiciones.
 - **Cambios simultáneos de la fecha (PA-8).** Gana la última escritura. Quien pierde no lo ve hasta volver a abrir la tarea.
 
