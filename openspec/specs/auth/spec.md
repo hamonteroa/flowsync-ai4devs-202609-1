@@ -46,6 +46,10 @@ Las rutas de cuenta de la API SHALL exigir un token de acceso válido en la cabe
 - **WHEN** se llama a `GET /api/v1/account/profile` o a `POST /api/v1/account/logout` sin cabecera `Authorization`
 - **THEN** la respuesta es 401 con `{ errors: [{ message }] }`
 
+#### Scenario: Cabecera mal formada
+- **WHEN** se llama a una ruta de cuenta con una cabecera `Authorization` sin el prefijo `Bearer`
+- **THEN** la respuesta es 401
+
 #### Scenario: Token revocado
 - **WHEN** se llama a una ruta de cuenta con un token que ya se usó para cerrar sesión
 - **THEN** la respuesta es 401
@@ -62,7 +66,7 @@ La API SHALL devolver los datos públicos del usuario dueño del token, y nunca 
 - **THEN** la respuesta es 200 con `{ data: { id, fullName, email, createdAt, updatedAt, initials } }` del usuario dueño del token
 
 ### Requirement: Iniciales del usuario
-La API SHALL calcular las iniciales del usuario en mayúsculas a partir de su nombre completo o, si no lo tiene, a partir de su email.
+La API SHALL calcular las iniciales del usuario en mayúsculas a partir de su nombre completo o, si no lo tiene, a partir de su email, partiendo el texto por cada espacio individual (o por la arroba, en el caso del email): si los dos primeros trozos no están vacíos, toma la primera letra de cada uno; si no, toma los dos primeros caracteres del primer trozo.
 
 #### Scenario: Nombre con dos o más palabras
 - **WHEN** el usuario tiene `fullName` "Ada Lovelace"
@@ -71,6 +75,18 @@ La API SHALL calcular las iniciales del usuario en mayúsculas a partir de su no
 #### Scenario: Nombre de una sola palabra
 - **WHEN** el usuario tiene `fullName` "Ada"
 - **THEN** `initials` vale "AD" (dos primeras letras)
+
+#### Scenario: Nombre de una sola letra
+- **WHEN** el usuario tiene `fullName` "A"
+- **THEN** `initials` vale "A"
+
+#### Scenario: Nombre con espacios repetidos
+- **WHEN** el usuario tiene `fullName` "Ada  Lovelace" (dos espacios seguidos)
+- **THEN** `initials` vale "AD", porque el segundo trozo está vacío
+
+#### Scenario: Nombre formado solo por espacios
+- **WHEN** el usuario se registra por la API con `fullName` "   "
+- **THEN** el nombre se guarda tal cual y `initials` es una cadena vacía
 
 #### Scenario: Sin nombre
 - **WHEN** el usuario tiene `fullName` nulo y email "ada@example.com"
@@ -110,8 +126,12 @@ La aplicación web SHALL ofrecer una pantalla de registro con los campos nombre 
 - **THEN** ve bajo el campo email "Ese email ya está registrado. Inicia sesión en su lugar."
 
 #### Scenario: Errores de validación por campo
-- **WHEN** el servidor rechaza alguno de los campos del formulario
-- **THEN** cada mensaje aparece en castellano bajo su campo, y si alguno no corresponde a un campo visible el mensaje aparece en un aviso en la parte superior del formulario
+- **WHEN** el servidor rechaza uno o varios campos del formulario
+- **THEN** bajo cada campo afectado aparece en castellano el primer error de ese campo, por ejemplo "Introduce una dirección de email válida."
+
+#### Scenario: Error sobre un campo que no está en pantalla
+- **WHEN** el servidor devuelve algún error de validación sobre un campo que el formulario no muestra
+- **THEN** aparece en la parte superior un aviso con el mensaje del primer error devuelto por el servidor, además de los errores de los campos visibles bajo cada campo
 
 #### Scenario: Nombre vacío
 - **WHEN** la persona deja el nombre completo vacío o solo con espacios
@@ -128,9 +148,17 @@ La aplicación web SHALL ofrecer una pantalla de inicio de sesión con email y c
 - **WHEN** la persona introduce un email o una contraseña incorrectos
 - **THEN** ve en la parte superior del formulario "El email o la contraseña no son correctos."
 
+#### Scenario: Datos mal formados al iniciar sesión
+- **WHEN** la persona envía el formulario con un email mal formado o sin contraseña
+- **THEN** ve bajo el campo afectado "Introduce una dirección de email válida." o "Falta rellenar la contraseña."
+
 #### Scenario: Servidor inaccesible
 - **WHEN** la persona intenta entrar o registrarse y el servidor no responde
 - **THEN** ve "No se pudo conectar con el servidor. Comprueba que el backend está arrancado."
+
+#### Scenario: Error del servidor
+- **WHEN** la persona intenta entrar o registrarse y el servidor responde con un error interno
+- **THEN** ve en la parte superior "Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento."
 
 #### Scenario: Navegación entre acceso y registro
 - **WHEN** la persona está en la pantalla de inicio de sesión o en la de registro
@@ -149,7 +177,7 @@ La aplicación web SHALL conservar la sesión entre recargas y reaperturas del n
 
 #### Scenario: Servidor caído al restaurar
 - **WHEN** al abrir la aplicación el servidor no responde o falla
-- **THEN** la persona ve la pantalla de inicio de sesión con un aviso que explica el problema, y la sesión guardada se conserva para restaurarse al recargar cuando el servidor vuelva
+- **THEN** la persona ve la pantalla de inicio de sesión con el aviso "No se pudo conectar con el servidor. Comprueba que el backend está arrancado." (si no responde) o "Algo ha ido mal en el servidor. Inténtalo de nuevo en un momento." (si falla), y la sesión guardada se conserva para restaurarse al recargar cuando el servidor vuelva
 
 ### Requirement: Protección de pantallas según la sesión
 La aplicación web SHALL mostrar el perfil solo a personas con sesión iniciada y SHALL mostrar las pantallas de inicio de sesión y registro solo a personas sin sesión.
@@ -178,7 +206,7 @@ La aplicación web SHALL cerrar la sesión local en cuanto la persona lo pide, a
 
 #### Scenario: Cerrar sesión
 - **WHEN** la persona pulsa "Cerrar sesión" en su perfil
-- **THEN** pasa a la pantalla de inicio de sesión sin ningún aviso, y al recargar la página sigue sin sesión
+- **THEN** el botón muestra "Cerrando sesión…" y queda deshabilitado, y la persona pasa a la pantalla de inicio de sesión sin ningún aviso, y al recargar la página sigue sin sesión
 
 #### Scenario: Cerrar sesión con el servidor caído
 - **WHEN** la persona pulsa "Cerrar sesión" y el servidor no responde
