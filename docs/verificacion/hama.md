@@ -23,12 +23,6 @@ Antes de este trabajo la suite no tenía ningún test de `tasks`, así que habí
 
 <!-- Parte B: las escribe la persona que entrega, no el agente. -->
 
-1. Cuántos creía cubiertos antes de mirar: _pendiente_ · cuántos lo estaban: 0 de 3
-2. Scenario dudoso entre hueco de test y hueco de spec: _pendiente_
-3. Lo que tuve que decidir al escribir el test: _pendiente_
-
-Material para la línea 3, de lo que se decidió al escribir los tests:
-- Se fija `?today=2026-08-13`, porque la tarea suelta lo exige.
-- `id` del responsable se acepta como dato permitido.
-- Las iniciales sin nombre solo se exigen no vacías, sin fijar su valor.
-- La tarea se mira desde otra cuenta, no desde la de su responsable.
+1. Cuántos creía cubiertos antes de mirar: 3 · cuántos lo estaban: 0 de 3
+2. Scenario dudoso entre hueco de test y hueco de spec: Si el responsable se registró sin nombre, fullName llega nulo y las iniciales siguen llegando.
+3. Lo que tuve que decidir al escribir el test: cómo trabajar con las iniciales
